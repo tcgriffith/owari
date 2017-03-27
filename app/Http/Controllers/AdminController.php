@@ -51,6 +51,7 @@ class AdminController extends Controller
 	//登出
 	public function logOut()
 	{
+
 		session()->forget('userInfo');
 		return redirect('admin/login');
 	}
@@ -70,7 +71,6 @@ class AdminController extends Controller
 
 	public function index()
 	{
-
 		return view('admin.index');
 	}
 
