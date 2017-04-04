@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Facades\Log;
 use App\Http\Libraries\AdminTool;
+use App\http\Models\Carousel;
 
 class AdminController extends Controller
 {
@@ -109,16 +110,23 @@ class AdminController extends Controller
 	//文章列表接口
     public function articleList_get(Request $request)
     {
-        /*$adminTool=new AdminTool();
-        $adminTool->articleDataTable($request->all());*/
-        /*echo json_encode(Article::all()->toArray());*/
-
-        $rs=Article::all();
-        var_dump($rs);
-        /*$adminTool=new AdminTool();
-        $rs=$adminTool->articleDataTable($request->all());
-        echo json_encode($rs,JSON_UNESCAPED_UNICODE);*/
-
+        $data['draw']=$request->get('draw');
+        $start=$request->get('start');
+        $length=$request->get('length');
+        $rs=Article::select('id','title','content','status','view','created_at')->offset($start)->limit($length)->get()->toArray();
+        foreach ($rs as $k=>$v){
+            $rs[$k]['content']=mb_substr($v['content'],0,40).'...';
+        }
+        $data['recordsTotal']=Article::count();
+        $data['recordsFiltered']=Article::count();
+        $data['data']=$rs;
+        echo json_encode($data);
+    }
+    
+    //用户信息
+    public function userInfo()
+    {
+        echo 'userInfo';
     }
 
 
@@ -167,4 +175,87 @@ class AdminController extends Controller
         $rs=Article::all();
         var_dump($rs);
 	}
+
+
+
+
+    public function carouselAdd()
+    {
+        return view('admin.carouselAdd');
+    }
+
+    public function doCarouselAdd()
+    {
+
+        $file = 'avatar_file';
+
+        $allowTypes = ['image/jpeg','image/png'];
+
+        if($_FILES[$file]['size'] > 5*1024*1024)
+            return $this->reJson(0,'图片过大');
+
+        if(!in_array($_FILES[$file]['type'],$allowTypes))
+            return $this->reJson(0,'图片类型错误');
+
+        $carousel = new Carousel();
+
+        return $carousel->add();
+
+    }
+
+    public function carouselSelect()
+    {
+
+
+        return view('admin.carouselList');
+    }
+
+    public function doCarouselSelect()
+    {
+
+
+        $data =
+            [
+                'start'=>Input::get('start'),
+                'length'=>Input::get('length')
+            ];
+
+        $carousel = new Carousel();
+
+        $records = $carousel->getList($data);
+
+        return $records;
+
+    }
+
+    public function carouselConfig()
+    {
+        $id = Input::get('id');
+
+
+        if ($id == null)
+//            return redirect()->back()->with('没有这一个。。');
+
+            $carousel = Carousel::find(['id'=>1]);
+
+        if ($carousel)
+            $carousel = $carousel->toArray()[0];
+        else
+            //            return redirect()->back()->with('没有这一个。。');
+
+            $carousel['url'] = public_path('uploads/carousel/').$carousel['url'];
+
+
+        return view('admin.carouselConfig',['carousel'=>$carousel]);
+    }
+
+    public function doCarouselConfig()
+    {
+
+    }
+
+    private function reJson($status = 0,$msg = '',$data = '')
+    {
+        return json_encode(["status"=>$status,"msg"=>$msg,"data"=>$data]);
+    }
 }
